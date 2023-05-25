@@ -1,8 +1,10 @@
 package com.icesi.cybersecurity.fileencrypter.services;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public interface EncryptService {
 
-    void encryptFile();
+    String encryptFile(MultipartFile file, String password);
 
     void decryptFile();
 
