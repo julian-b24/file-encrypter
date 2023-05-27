@@ -13,6 +13,6 @@ public interface EncryptAPI {
     String encryptFile(@RequestParam("file") MultipartFile file, String password);
 
     @PostMapping("/decrypt")
-    void decryptFile();
+    String decryptFile(@RequestParam("file") MultipartFile file, String password);
 
 }
