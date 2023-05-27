@@ -6,6 +6,6 @@ public interface EncryptService {
 
     String encryptFile(MultipartFile file, String password);
 
-    void decryptFile();
+    String decryptFile(MultipartFile file, String password);
 
 }

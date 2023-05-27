@@ -49,8 +49,32 @@ public class EncryptServiceImpl implements EncryptService {
     }
 
     @Override
-    public void decryptFile() {
+    public String decryptFile(MultipartFile file, String password) {
 
+        String content = "";
+        String decryptedContent = "";
+        try{
+
+            content = new String(file.getBytes());
+            SecretKey secretKey = generateKeyFromPassword(password);
+            IvParameterSpec iv = generateIv();
+            decryptedContent = decrypt(content,secretKey,iv);
+
+        } catch (IOException e) {
+            System.out.println("Fail on read");
+            throw new RuntimeException(e);
+
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            System.out.println("Fail on key generation");
+            throw new RuntimeException(e);
+        } catch (InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException |
+                NoSuchPaddingException | IllegalBlockSizeException e) {
+            System.out.println("Fail on AES Decryption");
+            throw new RuntimeException(e);
+        }
+
+
+        return decryptedContent;
     }
 
     private String encrypt(String content, SecretKey secretKey, IvParameterSpec iv)
@@ -60,6 +84,15 @@ public class EncryptServiceImpl implements EncryptService {
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
         byte[] cipherText = cipher.doFinal(content.getBytes());
         return Base64.getEncoder().encodeToString(cipherText);
+    }
+    private String decrypt(String content, SecretKey secretKey, IvParameterSpec iv)throws NoSuchPaddingException, NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException
+            {
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE,secretKey,iv);
+        byte[] decrypthText = cipher.doFinal(content.getBytes());
+        return new String(decrypthText);
     }
 
     private SecretKey generateKeyFromPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
