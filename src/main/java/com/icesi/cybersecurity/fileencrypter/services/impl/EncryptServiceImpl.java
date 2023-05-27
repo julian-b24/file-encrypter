@@ -91,7 +91,7 @@ public class EncryptServiceImpl implements EncryptService {
             {
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipher.init(Cipher.DECRYPT_MODE,secretKey,iv);
-        byte[] decrypthText = cipher.doFinal(content.getBytes());
+        byte[] decrypthText = cipher.doFinal(Base64.getMimeDecoder().decode(content));
         return new String(decrypthText);
     }
 
