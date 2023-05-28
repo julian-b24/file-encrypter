@@ -3,6 +3,8 @@ package com.icesi.cybersecurity.fileencrypter.services.impl;
 import com.icesi.cybersecurity.fileencrypter.model.EncryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.services.EncryptService;
 import lombok.AllArgsConstructor;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -65,27 +67,30 @@ public class EncryptServiceImpl implements EncryptService {
     }
 
     @Override
-    public String decryptFile(MultipartFile file, String password) {
+    public String decryptFile(MultipartFile file, String key, String iv) {
 
         String content = "";
         String decryptedContent = "";
         try{
 
             content = new String(file.getBytes());
-            SecretKey secretKey = generateKeyFromPassword(password);
-            IvParameterSpec iv = generateIv();
-            decryptedContent = decrypt(content,secretKey,iv);
+            SecretKey secretKey = fromStringToKey(key);
+            IvParameterSpec decodedIV = fromStringToIV(iv);
+            decryptedContent = decrypt(content, secretKey, decodedIV);
 
         } catch (IOException e) {
             System.out.println("Fail on read");
             throw new RuntimeException(e);
 
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (NoSuchAlgorithmException e) {
             System.out.println("Fail on key generation");
             throw new RuntimeException(e);
         } catch (InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException |
                 NoSuchPaddingException | IllegalBlockSizeException e) {
             System.out.println("Fail on AES Decryption");
+            throw new RuntimeException(e);
+        } catch (DecoderException e) {
+            System.out.println("Fail on IV parse");
             throw new RuntimeException(e);
         }
 
@@ -101,14 +106,16 @@ public class EncryptServiceImpl implements EncryptService {
         byte[] cipherText = cipher.doFinal(content.getBytes());
         return Base64.getEncoder().encodeToString(cipherText);
     }
+
     private String decrypt(String content, SecretKey secretKey, IvParameterSpec iv)throws NoSuchPaddingException, NoSuchAlgorithmException,
             InvalidAlgorithmParameterException, InvalidKeyException,
             BadPaddingException, IllegalBlockSizeException
             {
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE,secretKey,iv);
-        byte[] decrypthText = cipher.doFinal(Base64.getMimeDecoder().decode(content));
-        return new String(decrypthText);
+        System.out.println(iv.getIV().length);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, iv);
+        byte[] decryptedText = cipher.doFinal(Base64.getMimeDecoder().decode(content));
+        return new String(decryptedText);
     }
 
     private SecretKey generateKeyFromPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -128,9 +135,10 @@ public class EncryptServiceImpl implements EncryptService {
         return salt;
     }
 
-    private IvParameterSpec generateIv() {
-        byte[] iv = new byte[16];
-        new SecureRandom().nextBytes(iv);
+    private IvParameterSpec generateIv() throws NoSuchAlgorithmException, NoSuchPaddingException {
+        SecureRandom random = SecureRandom.getInstanceStrong();
+        byte[] iv = new byte[Cipher.getInstance("AES/CBC/PKCS5Padding").getBlockSize()];
+        random.nextBytes(iv);
         return new IvParameterSpec(iv);
     }
 
@@ -142,6 +150,16 @@ public class EncryptServiceImpl implements EncryptService {
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
         return new String(hexChars);
+    }
+
+    private SecretKey fromStringToKey(String key){
+        byte[] decodedKey = Base64.getDecoder().decode(key);
+        SecretKey originalKey = new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+        return originalKey;
+    }
+
+    private IvParameterSpec fromStringToIV(String iv) throws DecoderException {
+        return new IvParameterSpec(Hex.decodeHex(iv.toCharArray()));
     }
 
 }

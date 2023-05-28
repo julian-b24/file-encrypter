@@ -24,7 +24,7 @@ public class EncryptController implements EncryptAPI {
     }
 
     @Override
-    public String decryptFile(@RequestParam("file")MultipartFile file,String password) {
-        return encryptService.decryptFile(file, password);
+    public String decryptFile(@RequestParam("file")MultipartFile file,String key, String iv) {
+        return encryptService.decryptFile(file, key, iv);
     }
 }

@@ -14,6 +14,6 @@ public interface EncryptAPI {
     EncryptedFileResponseDTO encryptFile(@RequestParam("file") MultipartFile file, String password);
 
     @PostMapping("/decrypt")
-    String decryptFile(@RequestParam("file") MultipartFile file, String password);
+    String decryptFile(@RequestParam("file") MultipartFile file, String key, String iv);
 
 }
