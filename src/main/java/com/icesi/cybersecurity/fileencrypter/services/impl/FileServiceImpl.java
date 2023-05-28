@@ -33,7 +33,7 @@ public class FileServiceImpl implements FileService {
     public Object upload(MultipartFile multipartFile) {
         try {
             String fileName = multipartFile.getOriginalFilename();
-            fileName = UUID.randomUUID().toString().concat(this.getExtension(fileName));
+            //fileName = UUID.randomUUID().toString().concat(this.getExtension(fileName));
 
             File file = convertToFile(multipartFile, fileName);
             String url = uploadFile(file, fileName);
@@ -48,7 +48,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public Object download(String fileName, String destinyFolder) {
         String destFileName = UUID.randomUUID().toString().concat(this.getExtension(fileName));
-        String destFilePath = destinyFolder + "\\" + destFileName;
+        String destFilePath = destinyFolder + "\\" + fileName;
         Credentials credentials = GoogleCredentials.fromStream(GOOGLE_CREDENTIALS.getInputStream());
         Storage storage = StorageOptions.newBuilder().setCredentials(credentials).build().getService();
         Blob blob = storage.get(BlobId.of(BUCKET_NAME, fileName));

@@ -1,5 +1,6 @@
 package com.icesi.cybersecurity.fileencrypter.services.impl;
 
+import com.icesi.cybersecurity.fileencrypter.model.EncryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.services.EncryptService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -10,27 +11,44 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 
 @Service
 @AllArgsConstructor
 public class EncryptServiceImpl implements EncryptService {
 
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
     @Override
-    public String encryptFile(MultipartFile file, String password) {
-        String content = "";
-        String encryptedContent = "";
+    public EncryptedFileResponse encryptFile(MultipartFile file, String password) {
         try {
+            String content = "";
+            String encryptedContent = "";
+
             content = new String(file.getBytes());
             SecretKey secretKey = generateKeyFromPassword(password);
             IvParameterSpec iv = generateIv();
             encryptedContent = encrypt(content, secretKey, iv);
+
+            String secretKeyString = Base64.getEncoder().encodeToString(secretKey.getEncoded());
+            String ivString = bytesToHex(iv.getIV());
+
+            EncryptedFileResponse response = EncryptedFileResponse.builder()
+                    .status("Successfully encrypted, check content")
+                    .secretKey(secretKeyString)
+                    .iv(ivString)
+                    .content(encryptedContent)
+                    .build();
+
+            return response;
 
         } catch (IOException e) {
             System.out.println("Fail on read");
@@ -44,8 +62,6 @@ public class EncryptServiceImpl implements EncryptService {
             System.out.println("Fail on AES encryption");
             throw new RuntimeException(e);
         }
-
-        return encryptedContent;
     }
 
     @Override
@@ -102,7 +118,6 @@ public class EncryptServiceImpl implements EncryptService {
         KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 65536, 256);
         SecretKey secret = new SecretKeySpec(factory.generateSecret(spec)
                 .getEncoded(), "AES");
-        System.out.println(secret);
         return secret;
     }
 
@@ -117,6 +132,16 @@ public class EncryptServiceImpl implements EncryptService {
         byte[] iv = new byte[16];
         new SecureRandom().nextBytes(iv);
         return new IvParameterSpec(iv);
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 
 }

@@ -1,6 +1,8 @@
 package com.icesi.cybersecurity.fileencrypter.controller;
 
 import com.icesi.cybersecurity.fileencrypter.api.EncryptAPI;
+import com.icesi.cybersecurity.fileencrypter.dto.EncryptedFileResponseDTO;
+import com.icesi.cybersecurity.fileencrypter.mapper.EncryptedFileResponseMapper;
 import com.icesi.cybersecurity.fileencrypter.services.EncryptService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,10 +16,11 @@ import java.io.IOException;
 public class EncryptController implements EncryptAPI {
 
     private EncryptService encryptService;
+    private EncryptedFileResponseMapper encryptedFileResponseMapper;
 
     @Override
-    public String encryptFile(@RequestParam("file") MultipartFile file, String password) {
-        return encryptService.encryptFile(file, password);
+    public EncryptedFileResponseDTO encryptFile(@RequestParam("file") MultipartFile file, String password) {
+        return encryptedFileResponseMapper.fromEncryptedFileResponse(encryptService.encryptFile(file, password));
     }
 
     @Override

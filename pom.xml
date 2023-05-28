@@ -32,6 +32,11 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.5.2.Final</version>
+		</dependency>
 
 		<dependency>
 			<groupId>com.google.firebase</groupId>
@@ -61,6 +66,12 @@
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 							<version>1.18.24</version>
+						</path>
+
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>1.5.2.Final</version>
 						</path>
 
 					</annotationProcessorPaths>
