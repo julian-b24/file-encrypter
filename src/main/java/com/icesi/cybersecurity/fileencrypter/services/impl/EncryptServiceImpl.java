@@ -26,26 +26,31 @@ import java.util.Base64;
 public class EncryptServiceImpl implements EncryptService {
 
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    private static final String CRYPTO_TRANSFORMATION = "AES/CBC/PKCS5Padding";
+    private static final String KEY_ALGORITHM = "PBKDF2WithHmacSHA256";
+    private static final String HASHING_ALGORITHM = "SHA-256";
 
     @Override
     public EncryptedFileResponse encryptFile(MultipartFile file, String password,String outputPath) {
         try {
-            String content = "";
-            File encryptedContent;
 
-            System.out.println(outputPath + " Al inicio");
-            content = new String(file.getBytes());
             SecretKey secretKey = generateKeyFromPassword(password);
             IvParameterSpec iv = generateIv();
-            encryptedContent = encrypt(file, secretKey, iv,outputPath);
+            File encryptedContent = doCrypto(Cipher.ENCRYPT_MODE, file, secretKey, iv,outputPath);
 
             String secretKeyString = Base64.getEncoder().encodeToString(secretKey.getEncoded());
             String ivString = bytesToHex(iv.getIV());
 
+            byte [] dataEncrypted = Files.readAllBytes(encryptedContent.toPath());
+            String hashOriginal = getHash(file.getBytes());
+            String hashEncrypted = getHash(dataEncrypted);
+
             EncryptedFileResponse response = EncryptedFileResponse.builder()
-                    .status("Successfully encrypted, check content")
+                    .status("Successfully encrypted")
                     .secretKey(secretKeyString)
                     .iv(ivString)
+                    .hashOriginalFile(hashOriginal)
+                    .hashEncryptedFile(hashEncrypted)
                     .build();
 
             return response;
@@ -67,28 +72,22 @@ public class EncryptServiceImpl implements EncryptService {
     @Override
     public DecryptedFileResponse decryptFile(MultipartFile file, String key, String iv, String outputfilePath) {
 
-
         String content = "";
         File decryptedContent;
         try{
 
-            byte [] data = file.getBytes();
-            byte[] hashEncrypted = MessageDigest.getInstance("SHA-256").digest(data);
-            String hashEncryptedHex = bytesToHex(hashEncrypted);
-
-            content = new String(file.getBytes());
             SecretKey secretKey = fromStringToKey(key);
             IvParameterSpec decodedIV = fromStringToIV(iv);
-            decryptedContent = decrypt(file, secretKey, decodedIV,outputfilePath);
+            decryptedContent = doCrypto(Cipher.DECRYPT_MODE, file, secretKey, decodedIV, outputfilePath);
 
             byte [] dataDecrypted = Files.readAllBytes(decryptedContent.toPath());
-            byte[] hashDecrypted = MessageDigest.getInstance("SHA-256").digest(dataDecrypted);
-            String hashDecryptedHex = bytesToHex(hashDecrypted);
+            String hashEncrypted = getHash(file.getBytes());
+            String hashDecrypted = getHash(dataDecrypted);
 
             DecryptedFileResponse response = DecryptedFileResponse.builder()
-                    .status("Successfully encrypted, check content")
-                    .hashEncryptedFile(hashEncryptedHex)
-                    .hashDecryptedFile(hashDecryptedHex)
+                    .status("Successfully decrypted")
+                    .hashEncryptedFile(hashEncrypted)
+                    .hashDecryptedFile(hashDecrypted)
                     .build();
 
             return response;
@@ -108,82 +107,28 @@ public class EncryptServiceImpl implements EncryptService {
             throw new RuntimeException(e);
         }
 
-
-
-
-
     }
 
 
-    private File encrypt(MultipartFile content, SecretKey secretKey, IvParameterSpec iv, String outputPath)
+    private File doCrypto(int cipherMode, MultipartFile content, SecretKey secretKey, IvParameterSpec iv, String outputPath)
             throws InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException,
             BadPaddingException, NoSuchPaddingException, NoSuchAlgorithmException, IOException {
-        /*
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
-        byte[] cipherText = cipher.doFinal(content.getBytes());
-        return Base64.getEncoder().encodeToString(cipherText);
 
-         */
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        Cipher cipher = Cipher.getInstance(CRYPTO_TRANSFORMATION);
+        cipher.init(cipherMode, secretKey, iv);
 
-
-        File fileInput = new File("file.tmp");
-        fileInput.createNewFile();
-        content.transferTo(fileInput);
-
-        System.out.println(outputPath);
-        File fileOutput = new File(outputPath);
-        fileOutput.createNewFile();
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
+        File fileInput = convertToFile(content, "file.tmp");
         FileInputStream fis = new FileInputStream(fileInput);
-        FileOutputStream fos = new FileOutputStream(fileOutput);
-        byte[] buffer = new byte[64];
-        int bytesRead;
-        while ((bytesRead = fis.read(buffer)) != -1) {
-            byte[] output = cipher.update(buffer, 0, bytesRead);
-            if (output != null) {
-                fos.write(output);
-            }
-        }
-        byte[] outputBytes = cipher.doFinal();
-        if (outputBytes != null) {
-            fos.write(outputBytes);
-        }
-        fis.close();
-        fos.close();
-        fileInput.delete();
-        return fileOutput;
-    }
+        byte[] inputBytes = new byte[(int) fileInput.length()];
+        fis.read(inputBytes);
 
-    private File decrypt(MultipartFile content, SecretKey secretKey, IvParameterSpec iv,String outputPath) throws NoSuchPaddingException, NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException, InvalidKeyException,
-            BadPaddingException, IllegalBlockSizeException, IOException {
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        byte[] outputBytes = cipher.doFinal(inputBytes);
 
-
-        File fileInput = new File("file.tmp");
-        fileInput.createNewFile();
-        content.transferTo(fileInput);
-
-        File fileOutput = new File(outputPath);
+        File fileOutput = new File(outputPath + content.getName() + ".out");
         fileOutput.createNewFile();
-
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, iv);
-        FileInputStream fis = new FileInputStream(fileInput);
         FileOutputStream fos = new FileOutputStream(fileOutput);
-        byte[] buffer = new byte[64];
-        int bytesRead;
-        while ((bytesRead = fis.read(buffer)) != -1) {
-            byte[] output = cipher.update(buffer, 0, bytesRead);
-            if (output != null) {
-                fos.write(output);
-            }
-        }
-        byte[] outputBytes = cipher.doFinal();
-        if (outputBytes != null) {
-            fos.write(outputBytes);
-        }
+        fos.write(outputBytes);
+
         fis.close();
         fos.close();
         fileInput.delete();
@@ -193,7 +138,7 @@ public class EncryptServiceImpl implements EncryptService {
     private SecretKey generateKeyFromPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
         byte[] salt = generateSalt();
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+        SecretKeyFactory factory = SecretKeyFactory.getInstance(KEY_ALGORITHM);
         KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 65536, 256);
         SecretKey secret = new SecretKeySpec(factory.generateSecret(spec)
                 .getEncoded(), "AES");
@@ -209,7 +154,7 @@ public class EncryptServiceImpl implements EncryptService {
 
     private IvParameterSpec generateIv() throws NoSuchAlgorithmException, NoSuchPaddingException {
         SecureRandom random = SecureRandom.getInstanceStrong();
-        byte[] iv = new byte[Cipher.getInstance("AES/CBC/PKCS5Padding").getBlockSize()];
+        byte[] iv = new byte[Cipher.getInstance(CRYPTO_TRANSFORMATION).getBlockSize()];
         random.nextBytes(iv);
         return new IvParameterSpec(iv);
     }
@@ -232,6 +177,20 @@ public class EncryptServiceImpl implements EncryptService {
 
     private IvParameterSpec fromStringToIV(String iv) throws DecoderException {
         return new IvParameterSpec(Hex.decodeHex(iv.toCharArray()));
+    }
+
+    private String getHash(byte[] bytes) throws NoSuchAlgorithmException {
+        byte[] hashBytes = MessageDigest.getInstance("SHA-256").digest(bytes);
+        return bytesToHex(hashBytes);
+    }
+
+    private File convertToFile(MultipartFile multipartFile, String fileName) throws IOException {
+        File tempFile = new File(fileName);
+        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+            fos.write(multipartFile.getBytes());
+            fos.close();
+        }
+        return tempFile;
     }
 
 
