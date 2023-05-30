@@ -12,9 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 public interface EncryptAPI {
 
     @PostMapping("/encrypt")
-    EncryptedFileResponseDTO encryptFile(@RequestParam("file") MultipartFile file, String password);
+    EncryptedFileResponseDTO encryptFile(@RequestParam("file") MultipartFile file, @RequestParam("password") String password, @RequestParam("outputFilePath")String outputFilePath);
 
     @PostMapping("/decrypt")
-    DecryptedFileResponse decryptFile(@RequestParam("file") MultipartFile file, String key, String iv,String outPutFilePath);
+    DecryptedFileResponse decryptFile(@RequestParam("file") MultipartFile file, @RequestParam("key") String key,@RequestParam("iv") String iv,@RequestParam("outputFilePath") String outPutFilePath);
 
 }

@@ -28,15 +28,16 @@ public class EncryptServiceImpl implements EncryptService {
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
     @Override
-    public EncryptedFileResponse encryptFile(MultipartFile file, String password) {
+    public EncryptedFileResponse encryptFile(MultipartFile file, String password,String outputPath) {
         try {
             String content = "";
-            String encryptedContent = "";
+            File encryptedContent;
 
+            System.out.println(outputPath + " Al inicio");
             content = new String(file.getBytes());
             SecretKey secretKey = generateKeyFromPassword(password);
             IvParameterSpec iv = generateIv();
-            encryptedContent = encrypt(content, secretKey, iv);
+            encryptedContent = encrypt(file, secretKey, iv,outputPath);
 
             String secretKeyString = Base64.getEncoder().encodeToString(secretKey.getEncoded());
             String ivString = bytesToHex(iv.getIV());
@@ -45,7 +46,6 @@ public class EncryptServiceImpl implements EncryptService {
                     .status("Successfully encrypted, check content")
                     .secretKey(secretKeyString)
                     .iv(ivString)
-                    .content(encryptedContent)
                     .build();
 
             return response;
@@ -115,13 +115,45 @@ public class EncryptServiceImpl implements EncryptService {
     }
 
 
-    private String encrypt(String content, SecretKey secretKey, IvParameterSpec iv)
+    private File encrypt(MultipartFile content, SecretKey secretKey, IvParameterSpec iv, String outputPath)
             throws InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException,
-            BadPaddingException, NoSuchPaddingException, NoSuchAlgorithmException {
+            BadPaddingException, NoSuchPaddingException, NoSuchAlgorithmException, IOException {
+        /*
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
         byte[] cipherText = cipher.doFinal(content.getBytes());
         return Base64.getEncoder().encodeToString(cipherText);
+
+         */
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+
+
+        File fileInput = new File("file.tmp");
+        fileInput.createNewFile();
+        content.transferTo(fileInput);
+
+        System.out.println(outputPath);
+        File fileOutput = new File(outputPath);
+        fileOutput.createNewFile();
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv);
+        FileInputStream fis = new FileInputStream(fileInput);
+        FileOutputStream fos = new FileOutputStream(fileOutput);
+        byte[] buffer = new byte[64];
+        int bytesRead;
+        while ((bytesRead = fis.read(buffer)) != -1) {
+            byte[] output = cipher.update(buffer, 0, bytesRead);
+            if (output != null) {
+                fos.write(output);
+            }
+        }
+        byte[] outputBytes = cipher.doFinal();
+        if (outputBytes != null) {
+            fos.write(outputBytes);
+        }
+        fis.close();
+        fos.close();
+        fileInput.delete();
+        return fileOutput;
     }
 
     private File decrypt(MultipartFile content, SecretKey secretKey, IvParameterSpec iv,String outputPath) throws NoSuchPaddingException, NoSuchAlgorithmException,
@@ -131,9 +163,12 @@ public class EncryptServiceImpl implements EncryptService {
 
 
         File fileInput = new File("file.tmp");
+        fileInput.createNewFile();
         content.transferTo(fileInput);
 
         File fileOutput = new File(outputPath);
+        fileOutput.createNewFile();
+
         cipher.init(Cipher.DECRYPT_MODE, secretKey, iv);
         FileInputStream fis = new FileInputStream(fileInput);
         FileOutputStream fos = new FileOutputStream(fileOutput);
@@ -151,6 +186,7 @@ public class EncryptServiceImpl implements EncryptService {
         }
         fis.close();
         fos.close();
+        fileInput.delete();
         return fileOutput;
     }
 

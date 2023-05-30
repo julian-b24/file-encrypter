@@ -18,8 +18,8 @@ public class EncryptController implements EncryptAPI {
     private EncryptedFileResponseMapper encryptedFileResponseMapper;
 
     @Override
-    public EncryptedFileResponseDTO encryptFile(@RequestParam("file") MultipartFile file, String password) {
-        return encryptedFileResponseMapper.fromEncryptedFileResponse(encryptService.encryptFile(file, password));
+    public EncryptedFileResponseDTO encryptFile(@RequestParam("file") MultipartFile file, String password, String outputfilePath) {
+        return encryptedFileResponseMapper.fromEncryptedFileResponse(encryptService.encryptFile(file, password,outputfilePath));
     }
 
     @Override

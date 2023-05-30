@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface EncryptService {
 
-    EncryptedFileResponse encryptFile(MultipartFile file, String password);
+    EncryptedFileResponse encryptFile(MultipartFile file, String password,String outputFilePath);
 
     DecryptedFileResponse decryptFile(MultipartFile file, String key, String iv, String outputFilePath);
 
