@@ -1,2 +1,13 @@
-package com.icesi.cybersecurity.fileencrypter.exception;public class FileEncrypterError {
+package com.icesi.cybersecurity.fileencrypter.exception;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public class FileEncrypterError {
+
+	private String code;
+	private String message;
+
 }

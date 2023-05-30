@@ -3,7 +3,7 @@ import Header from '../components/Header'
 const Decrypt = () => {
     return (
         <>
-            <Header title={'Decifrar archivo'} />
+            <Header title={'Descifrar archivo'} />
         </>
     )
 }
