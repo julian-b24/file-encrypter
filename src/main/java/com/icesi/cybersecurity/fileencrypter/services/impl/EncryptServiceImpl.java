@@ -1,5 +1,6 @@
 package com.icesi.cybersecurity.fileencrypter.services.impl;
 
+import com.icesi.cybersecurity.fileencrypter.model.DecryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.model.EncryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.services.EncryptService;
 import lombok.AllArgsConstructor;
@@ -12,15 +13,12 @@ import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
-import java.util.Arrays;
 import java.util.Base64;
 
 @Service
@@ -67,17 +65,33 @@ public class EncryptServiceImpl implements EncryptService {
     }
 
     @Override
-    public String decryptFile(MultipartFile file, String key, String iv) {
+    public DecryptedFileResponse decryptFile(MultipartFile file, String key, String iv, String outputfilePath) {
+
 
         String content = "";
-        String decryptedContent = "";
+        File decryptedContent;
         try{
+
+            byte [] data = file.getBytes();
+            byte[] hashEncrypted = MessageDigest.getInstance("SHA-256").digest(data);
+            String hashEncryptedHex = bytesToHex(hashEncrypted);
 
             content = new String(file.getBytes());
             SecretKey secretKey = fromStringToKey(key);
             IvParameterSpec decodedIV = fromStringToIV(iv);
-            decryptedContent = decrypt(content, secretKey, decodedIV);
+            decryptedContent = decrypt(file, secretKey, decodedIV,outputfilePath);
 
+            byte [] dataDecrypted = Files.readAllBytes(decryptedContent.toPath());
+            byte[] hashDecrypted = MessageDigest.getInstance("SHA-256").digest(dataDecrypted);
+            String hashDecryptedHex = bytesToHex(hashDecrypted);
+
+            DecryptedFileResponse response = DecryptedFileResponse.builder()
+                    .status("Successfully encrypted, check content")
+                    .hashEncryptedFile(hashEncryptedHex)
+                    .hashDecryptedFile(hashDecryptedHex)
+                    .build();
+
+            return response;
         } catch (IOException e) {
             System.out.println("Fail on read");
             throw new RuntimeException(e);
@@ -95,8 +109,11 @@ public class EncryptServiceImpl implements EncryptService {
         }
 
 
-        return decryptedContent;
+
+
+
     }
+
 
     private String encrypt(String content, SecretKey secretKey, IvParameterSpec iv)
             throws InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException,
@@ -107,15 +124,34 @@ public class EncryptServiceImpl implements EncryptService {
         return Base64.getEncoder().encodeToString(cipherText);
     }
 
-    private String decrypt(String content, SecretKey secretKey, IvParameterSpec iv)throws NoSuchPaddingException, NoSuchAlgorithmException,
+    private File decrypt(MultipartFile content, SecretKey secretKey, IvParameterSpec iv,String outputPath) throws NoSuchPaddingException, NoSuchAlgorithmException,
             InvalidAlgorithmParameterException, InvalidKeyException,
-            BadPaddingException, IllegalBlockSizeException
-            {
+            BadPaddingException, IllegalBlockSizeException, IOException {
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        System.out.println(iv.getIV().length);
+
+
+        File fileInput = new File("file.tmp");
+        content.transferTo(fileInput);
+
+        File fileOutput = new File(outputPath);
         cipher.init(Cipher.DECRYPT_MODE, secretKey, iv);
-        byte[] decryptedText = cipher.doFinal(Base64.getMimeDecoder().decode(content));
-        return new String(decryptedText);
+        FileInputStream fis = new FileInputStream(fileInput);
+        FileOutputStream fos = new FileOutputStream(fileOutput);
+        byte[] buffer = new byte[64];
+        int bytesRead;
+        while ((bytesRead = fis.read(buffer)) != -1) {
+            byte[] output = cipher.update(buffer, 0, bytesRead);
+            if (output != null) {
+                fos.write(output);
+            }
+        }
+        byte[] outputBytes = cipher.doFinal();
+        if (outputBytes != null) {
+            fos.write(outputBytes);
+        }
+        fis.close();
+        fos.close();
+        return fileOutput;
     }
 
     private SecretKey generateKeyFromPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -161,5 +197,6 @@ public class EncryptServiceImpl implements EncryptService {
     private IvParameterSpec fromStringToIV(String iv) throws DecoderException {
         return new IvParameterSpec(Hex.decodeHex(iv.toCharArray()));
     }
+
 
 }
