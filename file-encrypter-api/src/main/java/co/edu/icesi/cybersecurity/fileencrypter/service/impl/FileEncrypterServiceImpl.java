@@ -93,7 +93,7 @@ public class FileEncrypterServiceImpl implements FileEncrypterService {
 				throw new FileEncrypterException(BAD_REQUEST, new FileEncrypterError(DECRYPT_06.name(), DECRYPT_06.getMessage()));
 			}
 
-			return Base64.getEncoder().encodeToString(decrypted);
+			return Base64.getMimeEncoder().encodeToString(decrypted);
 		} catch (BadPaddingException e) {
 			throw new FileEncrypterException(BAD_REQUEST, new FileEncrypterError(DECRYPT_07.name(), DECRYPT_07.getMessage()));
 		}

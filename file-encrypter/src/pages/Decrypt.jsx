@@ -9,6 +9,58 @@ import { NoEncryption } from "@mui/icons-material"
 
 const Decrypt = () => {
 
+    const type = {
+        'txt': 'text/plain',
+        'pdf': 'application/pdf',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'bmp': 'image/bmp',
+        'tiff': 'image/tiff',
+        'tif': 'image/tiff',
+        'svg': 'image/svg+xml',
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+        'ogg': 'audio/ogg',
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'avi': 'video/x-msvideo',
+        'mov': 'video/quicktime',
+        'wmv': 'video/x-ms-wmv',
+        'flv': 'video/x-flv',
+        'mkv': 'video/x-matroska',
+        'zip': 'application/zip',
+        'rar': 'application/x-rar-compressed',
+        '7z': 'application/x-7z-compressed',
+        'tar': 'application/x-tar',
+        'gz': 'application/gzip',
+        'exe': 'application/x-msdownload',
+        'iso': 'application/x-iso9660-image',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'odt': 'application/vnd.oasis.opendocument.text',
+        'ods': 'application/vnd.oasis.opendocument.spreadsheet',
+        'odp': 'application/vnd.oasis.opendocument.presentation',
+        'csv': 'text/csv',
+        'ics': 'text/calendar',
+        'html': 'text/html',
+        'htm': 'text/html',
+        'css': 'text/css',
+        'js': 'text/javascript',
+        'sh': 'application/x-sh',
+        'swift': 'text/x-swift',
+        'c': 'text/x-c',
+        'cpp': 'text/x-c',
+        'h': 'text/x-c',
+        'hpp': 'text/x-c',
+        'java': 'text/x-java-source'
+    }
+
     const MySwal = withReactContent(Swal)
 
     const [loaded, setLoaded] = useState(true)
@@ -36,17 +88,26 @@ const Decrypt = () => {
                     icon: 'success',
                     title: '¡Listo!',
                     text: 'El archivo se descifró correctamente',
+                    inputLabel: 'Escriba la extensión del archivo (.txt, .pdf, .etc)',
+                    input: 'text',
                     confirmButtonText: 'Descargar',
                     confirmButtonColor: '#04b44c',
                     showCancelButton: true,
                     cancelButtonText: 'Volver',
-                    cancelButtonColor: '#0464ac'
+                    cancelButtonColor: '#0464ac',
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'Debe ingresar la extensión del archivo'
+                        }
+                        if (!value.startsWith('.')) {
+                            return 'Debe ingresar una extensión válida'
+                        }
+                    }
                 }).then((result) => {
                     if (result.isConfirmed) {
                         const element = document.createElement('a')
-                        const file = new Blob([atob(response.data)])
-                        element.href = URL.createObjectURL(file)
-                        element.download = 'decrypted'
+                        element.href = 'data:' + (type[result.value] ? type[result.value] : 'text/plain') + ';base64,' + response.data
+                        element.download = 'decrypted' + result.value
                         document.body.appendChild(element)
                         element.click()
                     }
