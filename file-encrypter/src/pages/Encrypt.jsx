@@ -25,7 +25,7 @@ const Encrypt = () => {
 
         form.append('file', new Blob([file]))
         form.append('password', password)
-        form.append('outputFilePath', 'C:\\Users\\Carlos\\Downloads\\')
+        form.append('outputFilePath', '/Users/esteban/Desktop/')
 
         setLoaded(false)
 

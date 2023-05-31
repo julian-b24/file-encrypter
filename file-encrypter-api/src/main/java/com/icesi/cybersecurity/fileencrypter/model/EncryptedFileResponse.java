@@ -15,6 +15,6 @@ public class EncryptedFileResponse {
     String secretKey;
     String iv;
     String hashOriginalFile;
-    String hashEncryptedFile;
+    String content;
 
 }

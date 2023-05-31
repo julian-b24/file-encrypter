@@ -14,7 +14,6 @@ public class EncryptedFileResponseDTO {
     String secretKey;
     String iv;
     String hashOriginalFile;
-    String hashEncryptedFile;
     String content;
 
 }

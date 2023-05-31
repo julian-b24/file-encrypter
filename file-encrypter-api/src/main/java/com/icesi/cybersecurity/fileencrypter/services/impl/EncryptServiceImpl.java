@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 
 @Service
@@ -50,14 +51,14 @@ public class EncryptServiceImpl implements EncryptService {
 
 			byte[] dataEncrypted = Files.readAllBytes(encryptedContent.toPath());
 			String hashOriginal = getHash(file.getBytes());
-			String hashEncrypted = getHash(dataEncrypted);
+			String content = Base64.getEncoder().encodeToString(dataEncrypted);
 
             return EncryptedFileResponse.builder()
                     .status("Successfully encrypted")
                     .secretKey(secretKeyString)
                     .iv(ivString)
                     .hashOriginalFile(hashOriginal)
-                    .hashEncryptedFile(hashEncrypted)
+					.content(content)
                     .build();
 
 		} catch (IOException e) {
@@ -102,19 +103,25 @@ public class EncryptServiceImpl implements EncryptService {
 
 		Cipher cipher = Cipher.getInstance(CRYPTO_TRANSFORMATION);
 		cipher.init(cipherMode, secretKey, iv);
-
+		String secretKeyString = Base64.getEncoder().encodeToString(secretKey.getEncoded());
+		String ivString = bytesToHex(iv.getIV());
 		File fileInput = convertToFile(content, "file.tmp");
 		FileInputStream fis = new FileInputStream(fileInput);
 		byte[] inputBytes = new byte[(int) fileInput.length()];
 		fis.read(inputBytes);
+		String hashOriginal = getHash(content.getBytes());
 
 		byte[] outputBytes = cipher.doFinal(inputBytes);
 
-		File fileOutput = new File(outputPath + content.getName() + ".out");
+		File fileOutput = new File(outputPath + content.getName() + ".txt");
 		fileOutput.createNewFile();
 		FileOutputStream fos = new FileOutputStream(fileOutput);
+		if(cipherMode==1) {
+			String data = "-----------\nkey:" + secretKeyString + "\niv:" + ivString + "\nhash:" + hashOriginal + "\n-----------\n";
+			byte[] byteData = data.getBytes();
+			fos.write(byteData);
+		}
 		fos.write(outputBytes);
-
 		fis.close();
 		fos.close();
 		fileInput.delete();
