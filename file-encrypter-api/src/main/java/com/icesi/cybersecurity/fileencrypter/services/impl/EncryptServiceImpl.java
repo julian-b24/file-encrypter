@@ -7,6 +7,7 @@ import com.icesi.cybersecurity.fileencrypter.model.DecryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.model.EncryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.services.EncryptService;
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.springframework.http.HttpStatus;
@@ -60,16 +61,10 @@ public class EncryptServiceImpl implements EncryptService {
                     .build();
 
 		} catch (IOException e) {
-			System.out.println("Fail on read");
-			throw new RuntimeException(e);
+			throw new FileEncrypterException(HttpStatus.INTERNAL_SERVER_ERROR, new FileEncrypterError(FileEncrypterErrorCode.ENCRYPT_03.getCode(), FileEncrypterErrorCode.ENCRYPT_03.getMessage()));
 
-		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-			System.out.println("Fail on key generation");
-			throw new RuntimeException(e);
-		} catch (InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException |
-				 NoSuchPaddingException | IllegalBlockSizeException e) {
-			System.out.println("Fail on AES encryption");
-			throw new RuntimeException(e);
+		} catch (NoSuchPaddingException e) {
+			throw new FileEncrypterException(HttpStatus.INTERNAL_SERVER_ERROR, new FileEncrypterError(FileEncrypterErrorCode.ENCRYPT_02.getCode(), FileEncrypterErrorCode.ENCRYPT_02.getMessage()));
 		}
 	}
 
@@ -93,30 +88,17 @@ public class EncryptServiceImpl implements EncryptService {
 
 			return response;
 
-		} catch (IOException e) {
-			System.out.println("Fail on read");
-			throw new RuntimeException(e);
-
-		} catch (NoSuchAlgorithmException e) {
-			System.out.println("Fail on key generation");
-			throw new RuntimeException(e);
-
-		} catch (InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException |
-				 NoSuchPaddingException | IllegalBlockSizeException e) {
-			System.out.println("Fail on AES Decryption");
-			throw new RuntimeException(e);
-
 		} catch (DecoderException e) {
-			System.out.println("Fail on IV parse");
-			throw new RuntimeException(e);
+			throw new FileEncrypterException(HttpStatus.INTERNAL_SERVER_ERROR, new FileEncrypterError(FileEncrypterErrorCode.DECRYPT_02.getCode(), FileEncrypterErrorCode.DECRYPT_02.getMessage()));
+		} catch (IOException e) {
+			throw new FileEncrypterException(HttpStatus.INTERNAL_SERVER_ERROR, new FileEncrypterError(FileEncrypterErrorCode.DECRYPT_03.getCode(), FileEncrypterErrorCode.DECRYPT_03.getMessage()));
 		}
 
 	}
 
 
-	private File doCrypto(int cipherMode, MultipartFile content, SecretKey secretKey, IvParameterSpec iv, String outputPath)
-			throws InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException,
-			BadPaddingException, NoSuchPaddingException, NoSuchAlgorithmException, IOException {
+	@SneakyThrows
+	private File doCrypto(int cipherMode, MultipartFile content, SecretKey secretKey, IvParameterSpec iv, String outputPath) throws IOException {
 
 		Cipher cipher = Cipher.getInstance(CRYPTO_TRANSFORMATION);
 		cipher.init(cipherMode, secretKey, iv);
@@ -139,13 +121,17 @@ public class EncryptServiceImpl implements EncryptService {
 		return fileOutput;
 	}
 
-	private SecretKey generateKeyFromPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
-
-		byte[] salt = generateSalt();
-		SecretKeyFactory factory = SecretKeyFactory.getInstance(KEY_ALGORITHM);
-		KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 65536, 256);
-		return new SecretKeySpec(factory.generateSecret(spec)
-				.getEncoded(), "AES");
+	@SneakyThrows
+	private SecretKey generateKeyFromPassword(String password) {
+		try {
+			byte[] salt = generateSalt();
+			SecretKeyFactory factory = SecretKeyFactory.getInstance(KEY_ALGORITHM);
+			KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 65536, 256);
+			return new SecretKeySpec(factory.generateSecret(spec)
+					.getEncoded(), "AES");
+		} catch (InvalidKeySpecException e) {
+			throw new FileEncrypterException(HttpStatus.INTERNAL_SERVER_ERROR, new FileEncrypterError(FileEncrypterErrorCode.ENCRYPT_01.getCode(), FileEncrypterErrorCode.ENCRYPT_01.getMessage()));
+		}
 	}
 
 	private byte[] generateSalt() {
@@ -155,7 +141,8 @@ public class EncryptServiceImpl implements EncryptService {
 		return salt;
 	}
 
-	private IvParameterSpec generateIv() throws NoSuchAlgorithmException, NoSuchPaddingException {
+	@SneakyThrows
+	private IvParameterSpec generateIv() throws NoSuchPaddingException {
 		SecureRandom random = SecureRandom.getInstanceStrong();
 		byte[] iv = new byte[Cipher.getInstance(CRYPTO_TRANSFORMATION).getBlockSize()];
 		random.nextBytes(iv);
@@ -182,7 +169,8 @@ public class EncryptServiceImpl implements EncryptService {
 		return new IvParameterSpec(Hex.decodeHex(iv.toCharArray()));
 	}
 
-	private String getHash(byte[] bytes) throws NoSuchAlgorithmException {
+	@SneakyThrows
+	private String getHash(byte[] bytes) {
 		byte[] hashBytes = MessageDigest.getInstance(HASHING_ALGORITHM).digest(bytes);
 		return bytesToHex(hashBytes);
 	}
