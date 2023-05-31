@@ -1,4 +1,4 @@
-import { Button, TextField, Typography } from "@mui/material"
+import { Button, TextField } from "@mui/material"
 import Header from "../components/Header"
 import Spinner from "../components/Spinner"
 import { useState } from "react"
@@ -12,35 +12,44 @@ const Encrypt = () => {
     const MySwal = withReactContent(Swal)
 
     const [loaded, setLoaded] = useState(true)
-    const [encrypted, setEncrypted] = useState(false)
 
     const [file, setFile] = useState('')
+    const [fileName, setFileName] = useState('')
     const [password, setPassword] = useState('')
 
-    const [hash, setHash] = useState('')
-    const [encryptedFile, setEncryptedFile] = useState('')
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0])
+        setFileName(e.target.value)
+    }
 
     const handleEncrypt = () => {
         const form = new FormData();
-
         form.append('file', new Blob([file]))
         form.append('password', password)
-        form.append('outputFilePath', '/Users/esteban/Desktop/')
 
         setLoaded(false)
 
         axios.post('/encrypt', form)
 
             .then((response) => {
-                setHash(response.data.hashOriginalFile)
-                setEncryptedFile(response.data.content)
-                setEncrypted(true)
                 MySwal.fire({
                     icon: 'success',
                     title: '¡Listo!',
                     text: 'El archivo se cifró correctamente',
-                    confirmButtonText: 'Aceptar',
-                    confirmButtonColor: '#0464ac'
+                    confirmButtonText: 'Descargar',
+                    confirmButtonColor: '#04b44c',
+                    showCancelButton: true,
+                    cancelButtonText: 'Volver',
+                    cancelButtonColor: '#0464ac'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const element = document.createElement('a')
+                        const file = new Blob([response.data], { type: 'text/plain' })
+                        element.href = URL.createObjectURL(file)
+                        element.download = 'encrypted.cif'
+                        document.body.appendChild(element)
+                        element.click()
+                    }
                 })
             })
 
@@ -55,19 +64,11 @@ const Encrypt = () => {
             })
 
             .finally(() => {
+                setFileName('')
                 setFile('')
                 setPassword('')
                 setLoaded(true)
             })
-    }
-
-    const handleDownload = () => {
-        const element = document.createElement('a')
-        const file = new Blob([encryptedFile], { type: 'text/plain' })
-        element.href = URL.createObjectURL(file)
-        element.download = 'encrypted.cif'
-        document.body.appendChild(element)
-        element.click()
     }
 
     return (
@@ -75,56 +76,41 @@ const Encrypt = () => {
             <Header title={'Cifrar archivo'} />
             {loaded ?
                 <>
-                    {encrypted ?
-                        <>
-                        <Typography variant="h6" sx={{my:2}}>
-                            Hash del archivo original
-                        </Typography>
-                        <Typography variant="body1" sx={{mb:2}}>
-                            {hash}
-                        </Typography>
-                        </>
-                        :
-                        <>
-                            <TextField
-                                id="file"
-                                type="file"
-                                label="Archivo"
-                                variant="outlined"
-                                margin="normal"
-                                helperText="Seleccione el archivo a cifrar"
-                                value={file}
-                                onChange={(e) => setFile(e.target.value)}
-                                disabled={encrypted}
-                                InputLabelProps={{
-                                    shrink: true,
-                                }}
-                                sx={{
-                                    width: '100%',
-                                }}
-                            />
-                            <TextField
-                                id="password"
-                                type="password"
-                                label="Contraseña"
-                                variant="outlined"
-                                margin="normal"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                disabled={encrypted}
-                                helperText="Ingrese la contraseña para cifrar el archivo"
-                                sx={{
-                                    width: '100%'
-                                }}
-                            />
-                        </>
-                    }
+                    <TextField
+                        id="file"
+                        type="file"
+                        label="Archivo"
+                        variant="outlined"
+                        margin="normal"
+                        helperText="Seleccione el archivo a cifrar"
+                        value={fileName}
+                        onChange={handleFileChange}
+                        InputLabelProps={{
+                            shrink: true,
+                        }}
+                        sx={{
+                            width: '100%',
+                        }}
+                    />
+                    <TextField
+                        id="password"
+                        type="password"
+                        label="Contraseña"
+                        variant="outlined"
+                        margin="normal"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        helperText="Ingrese la contraseña para cifrar el archivo"
+                        sx={{
+                            width: '100%'
+                        }}
+                    />
                     <Button
                         variant="contained"
-                        onClick={encrypted ? handleDownload : handleEncrypt}
-                        disabled={!encrypted && (file === '' || password === '')}
+                        onClick={handleEncrypt}
+                        disabled={fileName === '' || password === ''}
                     >
-                        {encrypted ? 'Descargar archivo cifrado' : 'Cifrar archivo'}
+                        Cifrar archivo
                     </Button>
                 </>
                 :

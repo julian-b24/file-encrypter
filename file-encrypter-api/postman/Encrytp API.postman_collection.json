@@ -1,13 +1,13 @@
 {
 	"info": {
-		"_postman_id": "84d0bf14-b832-4f58-8beb-48f722ac5f0d",
-		"name": "Encrytp API",
+		"_postman_id": "5b65c1f3-adc2-4853-9242-eef9bde280e6",
+		"name": "file-encrypter",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "22749464"
+		"_exporter_id": "24585622"
 	},
 	"item": [
 		{
-			"name": "Encrypt File",
+			"name": "encrypt",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -17,22 +17,22 @@
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/C:/Users/julia/OneDrive/Documentos/temp/Ejemplo.txt"
+							"src": []
 						},
 						{
 							"key": "password",
-							"value": "1234",
+							"value": "123",
 							"type": "text"
 						}
 					]
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/encrypt",
+					"raw": "http://localhost:8182/api/encrypt",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "8182",
 					"path": [
 						"api",
 						"encrypt"
@@ -42,7 +42,7 @@
 			"response": []
 		},
 		{
-			"name": "Decrypt File",
+			"name": "decrypt",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -52,101 +52,25 @@
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/C:/Users/julia/OneDrive/Documentos/temp/Ejemplo.txt.asc"
+							"src": []
 						},
 						{
-							"key": "key",
-							"value": "+09ytrmGzEHXFOg4enYFmIUCFvCrCT1saEJ9cJm2MRg=",
-							"type": "text"
-						},
-						{
-							"key": "iv",
-							"value": "DCE83AB118DE499E96DE1B385E1F2293",
+							"key": "password",
+							"value": "123",
 							"type": "text"
 						}
 					]
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/decrypt",
+					"raw": "http://localhost:8182/api/decrypt",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "8080",
+					"port": "8182",
 					"path": [
 						"api",
 						"decrypt"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Upload File FireBase",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "file",
-							"type": "file",
-							"src": "/C:/Users/julia/OneDrive/Documentos/temp/Ejemplo.txt"
-						}
-					]
-				},
-				"url": {
-					"raw": "http://localhost:8080/file/upload",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"file",
-						"upload"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Download File FireBase",
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text",
-						"disabled": true
-					}
-				],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "destinyFolder",
-							"value": "C:/Users/julia/Downloads",
-							"type": "text"
-						}
-					]
-				},
-				"url": {
-					"raw": "http://localhost:8080/file/download/Ejemplo.txt",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"file",
-						"download",
-						"Ejemplo.txt"
 					]
 				}
 			},
