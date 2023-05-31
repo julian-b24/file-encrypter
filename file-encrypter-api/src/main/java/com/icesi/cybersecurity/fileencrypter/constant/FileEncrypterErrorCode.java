@@ -7,8 +7,14 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum FileEncrypterErrorCode {
 
-	ENCRYPT_00("");
+	ENCRYPT_00("", ""),
+	ENCRYPT_02("", ""),
+
+
+	DECRYPT_01("Fail in hashing comparison", "01");
+
 
 	private final String message;
+	private final String code;
 
 }

@@ -1,11 +1,15 @@
 package com.icesi.cybersecurity.fileencrypter.services.impl;
 
+import com.icesi.cybersecurity.fileencrypter.constant.FileEncrypterErrorCode;
+import com.icesi.cybersecurity.fileencrypter.exception.FileEncrypterError;
+import com.icesi.cybersecurity.fileencrypter.exception.FileEncrypterException;
 import com.icesi.cybersecurity.fileencrypter.model.DecryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.model.EncryptedFileResponse;
 import com.icesi.cybersecurity.fileencrypter.services.EncryptService;
 import lombok.AllArgsConstructor;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -70,27 +74,25 @@ public class EncryptServiceImpl implements EncryptService {
 	}
 
 	@Override
-	public DecryptedFileResponse decryptFile(MultipartFile file, String key, String iv, String outputfilePath) {
+	public DecryptedFileResponse decryptFile(MultipartFile file, String key, String iv, String outputfilePath, String hashOriginalFile) {
 
-		String content = "";
-		File decryptedContent;
 		try {
 
 			SecretKey secretKey = fromStringToKey(key);
 			IvParameterSpec decodedIV = fromStringToIV(iv);
-			decryptedContent = doCrypto(Cipher.DECRYPT_MODE, file, secretKey, decodedIV, outputfilePath);
+			File decryptedContent = doCrypto(Cipher.DECRYPT_MODE, file, secretKey, decodedIV, outputfilePath);
 
 			byte[] dataDecrypted = Files.readAllBytes(decryptedContent.toPath());
-			String hashEncrypted = getHash(file.getBytes());
 			String hashDecrypted = getHash(dataDecrypted);
+			boolean hashComparison = compareHashes(hashOriginalFile, hashDecrypted);
 
 			DecryptedFileResponse response = DecryptedFileResponse.builder()
 					.status("Successfully decrypted")
-					.hashEncryptedFile(hashEncrypted)
-					.hashDecryptedFile(hashDecrypted)
+					.hashComparison(hashComparison)
 					.build();
 
 			return response;
+
 		} catch (IOException e) {
 			System.out.println("Fail on read");
 			throw new RuntimeException(e);
@@ -98,10 +100,12 @@ public class EncryptServiceImpl implements EncryptService {
 		} catch (NoSuchAlgorithmException e) {
 			System.out.println("Fail on key generation");
 			throw new RuntimeException(e);
+
 		} catch (InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException |
 				 NoSuchPaddingException | IllegalBlockSizeException e) {
 			System.out.println("Fail on AES Decryption");
 			throw new RuntimeException(e);
+
 		} catch (DecoderException e) {
 			System.out.println("Fail on IV parse");
 			throw new RuntimeException(e);
@@ -179,8 +183,15 @@ public class EncryptServiceImpl implements EncryptService {
 	}
 
 	private String getHash(byte[] bytes) throws NoSuchAlgorithmException {
-		byte[] hashBytes = MessageDigest.getInstance("SHA-256").digest(bytes);
+		byte[] hashBytes = MessageDigest.getInstance(HASHING_ALGORITHM).digest(bytes);
 		return bytesToHex(hashBytes);
+	}
+
+	private boolean compareHashes(String originalHash, String comparedHash){
+		if(originalHash.equals(comparedHash)){
+			return true;
+		}
+		throw new FileEncrypterException(HttpStatus.CONFLICT, new FileEncrypterError(FileEncrypterErrorCode.DECRYPT_01.getCode(), FileEncrypterErrorCode.DECRYPT_01.getMessage()));
 	}
 
 	private File convertToFile(MultipartFile multipartFile, String fileName) throws IOException {

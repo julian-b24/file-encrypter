@@ -1,15 +1,13 @@
-package com.icesi.cybersecurity.fileencrypter.model;
+package com.icesi.cybersecurity.fileencrypter.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DecryptedFileResponse {
+public class DecryptedFileResponseDTO {
 
     String status;
     boolean hashComparison;

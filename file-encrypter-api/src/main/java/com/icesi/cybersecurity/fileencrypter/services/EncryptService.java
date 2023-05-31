@@ -8,6 +8,6 @@ public interface EncryptService {
 
     EncryptedFileResponse encryptFile(MultipartFile file, String password,String outputFilePath);
 
-    DecryptedFileResponse decryptFile(MultipartFile file, String key, String iv, String outputFilePath);
+    DecryptedFileResponse decryptFile(MultipartFile file, String key, String iv, String outputFilePath, String hashOriginalFile);
 
 }
